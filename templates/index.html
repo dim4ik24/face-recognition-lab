@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система розпізнавання облич</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.bunny.net/css?family=inter:400,600,700" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 2rem;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1.2rem;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .file-upload-container {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .file-upload-container:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .file-upload-container input[type="file"] {
+            display: none;
+        }
+        
+        .file-upload-label {
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 600;
+            display: block;
+        }
+        
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 1rem;
+            border-radius: 10px;
+            display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 0.8rem 2rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        #recognitionResult {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 10px;
+            background: rgba(102, 126, 234, 0.05);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .progress {
+            height: 25px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-weight: 600;
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .toast {
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        .spinner-border {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-user-shield"></i> Система розпізнавання облич</h1>
+        <p class="subtitle">Додавайте нові обличчя та розпізнавайте людей за фотографією</p>
+        
+        <div class="row">
+            <!-- Форма додавання -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-plus-circle"></i> Додавання нових даних
+                    </div>
+                    <div class="card-body">
+                        <form id="addFaceForm" action="/" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Ім'я особи</label>
+                                <input type="text" class="form-control" id="name" name="name" placeholder="Введіть ім'я" required>
+                                <div class="invalid-feedback">
+                                    Будь ласка, введіть ім'я.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Фотографія</label>
+                                <div class="file-upload-container" onclick="document.getElementById('addFileInput').click()">
+                                    <input type="file" id="addFileInput" name="image" accept="image/*" required>
+                                    <label class="file-upload-label">
+                                        <i class="fas fa-cloud-upload-alt fa-3x mb-2"></i>
+                                        <p>Клацніть для вибору фото</p>
+                                    </label>
+                                    <img id="addPhoto" class="preview-image" alt="Прев'ю">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Будь ласка, виберіть фотографію.
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-plus"></i> Додати дані для розпізнавання
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Форма розпізнавання -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-search"></i> Розпізнавання зображення
+                    </div>
+                    <div class="card-body">
+                        <form id="recognizeFaceForm" action="/recognize" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <label class="form-label">Фотографія для розпізнавання</label>
+                                <div class="file-upload-container" onclick="document.getElementById('recognizeFileInput').click()">
+                                    <input type="file" id="recognizeFileInput" name="image" accept="image/*" required>
+                                    <label class="file-upload-label">
+                                        <i class="fas fa-cloud-upload-alt fa-3x mb-2"></i>
+                                        <p>Клацніть для вибору фото</p>
+                                    </label>
+                                    <img id="recognizePhoto" class="preview-image" alt="Прев'ю">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Будь ласка, виберіть фотографію.
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-user-check"></i> Розпізнати людину
+                            </button>
+                        </form>
+                        
+                        <div id="recognitionResult">
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-info-circle"></i> Результат з'явиться тут
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Контейнер для toast повідомлень -->
+    <div class="toast-container"></div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Валідація форм Bootstrap
+        (function () {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+        
+        // Функція прев'ю зображень
+        function setupImagePreview(inputId, imgId) {
+            const input = document.getElementById(inputId);
+            const img = document.getElementById(imgId);
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        img.src = event.target.result;
+                        img.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+        }
+        
+        setupImagePreview('addFileInput', 'addPhoto');
+        setupImagePreview('recognizeFileInput', 'recognizePhoto');
+        
+        // Функція показу toast повідомлень
+        function displayToastMessage(message, category) {
+            const toastContainer = document.querySelector('.toast-container');
+            
+            const toastColors = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning'
+            };
+            
+            const toastIcons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'warning': 'fa-exclamation-triangle'
+            };
+            
+            const toastHtml = `
+                <div class="toast align-items-center text-white ${toastColors[category] || 'bg-primary'}" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas ${toastIcons[category] || 'fa-info-circle'}"></i> ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = toastContainer.lastElementChild;
+            const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+            toast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', function () {
+                toastElement.remove();
+            });
+        }
+        
+        // Обробник форми додавання
+        document.getElementById('addFaceForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            
+            if (!form.checkValidity()) {
+                event.stopPropagation();
+                form.classList.add('was-validated');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayToastMessage(result.message, result.category || 'success');
+                    form.reset();
+                    form.classList.remove('was-validated');
+                    document.getElementById('addPhoto').style.display = 'none';
+                } else {
+                    displayToastMessage(result.message || 'Помилка при додаванні', 'error');
+                }
+            } catch (error) {
+                displayToastMessage('Помилка мережі: ' + error.message, 'error');
+            }
+        });
+        
+        // Обробник форми розпізнавання
+        document.getElementById('recognizeFaceForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            
+            if (!form.checkValidity()) {
+                event.stopPropagation();
+                form.classList.add('was-validated');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            const resultDiv = document.getElementById('recognitionResult');
+            
+            // Показуємо завантажувач
+            resultDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Завантаження...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Розпізнавання...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.name) {
+                        // Успішне розпізнавання
+                        const confidence = Math.round(result.confidence * 100);
+                        resultDiv.innerHTML = `
+                            <div class="w-100">
+                                <h4 class="text-success mb-3">
+                                    <i class="fas fa-user-check"></i> Розпізнано: ${result.name}
+                                </h4>
+                                <p class="mb-2">Впевненість:</p>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${confidence}%" 
+                                         aria-valuenow="${confidence}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        ${confidence}%
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        displayToastMessage(`Розпізнано: ${result.name} (${confidence}%)`, 'success');
+                    } else {
+                        // Обличчя не розпізнано
+                        resultDiv.innerHTML = `
+                            <div class="text-center w-100">
+                                <i class="fas fa-user-times fa-3x text-warning mb-3"></i>
+                                <h5 class="text-warning">Невідоме обличчя</h5>
+                                <p class="text-muted">Ця особа відсутня в базі даних</p>
+                            </div>
+                        `;
+                        displayToastMessage('Невідома особа', 'warning');
+                    }
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="text-center w-100">
+                            <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+                            <h5 class="text-danger">Помилка</h5>
+                            <p class="text-muted">${result.message || 'Не вдалося розпізнати'}</p>
+                        </div>
+                    `;
+                    displayToastMessage(result.message || 'Помилка розпізнавання', 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="text-center w-100">
+                        <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+                        <h5 class="text-danger">Помилка мережі</h5>
+                        <p class="text-muted">${error.message}</p>
+                    </div>
+                `;
+                displayToastMessage('Помилка мережі: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
